@@ -23,7 +23,7 @@ pub fn calculate_total_reward(blocks_mined: u64) -> f64 {
 /// Return true if the transaction fee is between 0.00001 and 0.01 BTC.
 pub fn is_valid_tx_fee(fee: f64) -> bool {
     // TODO: Check if fee is between 0.00001 and 0.01 BTC (inclusive)
-    fee >= 0.00001 && fee <= 0.01
+    (0.00001..=0.01).contains(&fee)
 }
 
 /// Return true if the wallet balance is greater than 50.0 BTC.
@@ -96,7 +96,7 @@ pub fn get_wallet_details() -> (String, f64) {
 /// Get the status of a transaction from the mempool or "not found".
 pub fn get_tx_status(tx_pool: &HashMap<String, String>, txid: &str) -> String {
     // TODO: Look up txid in tx_pool, returning the status or "not found"
-   tx_pool
+    tx_pool
         .get(txid)
         .cloned()
         .unwrap_or_else(|| "not found".to_string())
@@ -126,7 +126,9 @@ pub fn generate_address(prefix: &str) -> String {
     let mut seed: u64 = 0xdeadbeefcafe;
     let suffix: String = (0..suffix_len)
         .map(|_| {
-            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            seed = seed
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             charset[((seed >> 33) as usize) % charset.len()]
         })
         .collect();
@@ -139,7 +141,10 @@ pub fn validate_block_height(height: i64) -> (bool, String) {
     // TODO: Check that height is within a realistic range (<= 1_000_000)
     // TODO: Return (true, "Valid block height") otherwise
     if height < 0 {
-        return (false, "Invalid: block height cannot be negative".to_string());
+        return (
+            false,
+            "Invalid: block height cannot be negative".to_string(),
+        );
     }
     if height > 1_000_000 {
         return (false, "Invalid: unrealistic block height".to_string());
@@ -194,7 +199,7 @@ pub fn create_utxo(
 
 // Implement extract_tx_version function below
 pub fn extract_tx_version(raw_tx_hex: &str) -> Result<u32, String> {
-    if raw_tx_hex.len() % 2 != 0 {
+    if !raw_tx_hex.len().is_multiple_of(2) {
         return Err("Hex decode error: odd length".to_string());
     }
     let bytes: Result<Vec<u8>, _> = (0..raw_tx_hex.len())
@@ -202,11 +207,11 @@ pub fn extract_tx_version(raw_tx_hex: &str) -> Result<u32, String> {
         .map(|i| u8::from_str_radix(&raw_tx_hex[i..i + 2], 16))
         .collect();
     let bytes = bytes.map_err(|_| "Hex decode error: invalid hex characters".to_string())?;
- 
+
     if bytes.len() < 4 {
         return Err("Transaction data too short".to_string());
     }
- 
+
     // Version is the first 4 bytes, little-endian
     let version = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
     Ok(version)
